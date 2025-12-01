@@ -27,6 +27,7 @@
         ul { padding-left: 20px; }
         li { margin-bottom: 5px; }
         .error { color: #dc3545; font-weight: bold; text-align: center; }
+        .loading { color: #007bff; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
@@ -41,83 +42,90 @@
     </div>
 
     <script>
-        // --- 关键修改：等待整个DOM加载完毕后再执行我们的代码 ---
-        document.addEventListener('DOMContentLoaded', function() {
-            const jsonInput = document.getElementById('json-input');
-            const reportOutput = document.getElementById('report-output');
+        // 我们不再需要 DOMContentLoaded，因为我们的检查逻辑本身就是安全的。
+        const jsonInput = document.getElementById('json-input');
+        const reportOutput = document.getElementById('report-output');
 
-            jsonInput.addEventListener('input', function() {
-                let rawString = this.value;
+        jsonInput.addEventListener('input', function() {
+            let rawString = this.value;
 
-                if (!rawString.trim()) {
-                    reportOutput.innerHTML = '<p class="placeholder">报告将在此处显示</p>';
-                    return;
-                }
-
-                try {
-                    // 1. 先用 jsonrepair 修复字符串
-                    const repairedString = jsonrepair.jsonrepair(rawString);
-                    
-                    // 2. 解析修复后的、保证合法的JSON字符串
-                    let data = JSON.parse(repairedString);
-                    
-                    // 3. 兼容旧格式：检查是否存在 music_comprehensive_caption 键
-                    if (data.music_comprehensive_caption) {
-                        data = data.music_comprehensive_caption;
-                    }
-
-                    // 生成HTML报告内容
-                    const reportHtml = generateReportHtml(data);
-                    reportOutput.innerHTML = reportHtml;
-
-                } catch (error) {
-                    // 如果连 jsonrepair 都无法修复，则报错
-                    reportOutput.innerHTML = `<p class="error">JSON格式严重错误，无法自动修复: ${error.message}</p>`;
-                }
-            });
-
-            // 主函数和辅助函数 (保持不变)
-            function generateReportHtml(data) {
-                const globalDim = data.global_dimension || {};
-                const sectionDim = data.section_dimension || [];
-                let html = '';
-                html += "<h2>核心信息</h2><div class='card'>";
-                const factKeywords = globalDim.fact_keywords || {};
-                for (const [key, val] of Object.entries(factKeywords)) { html += `<span class='tag'><strong>${formatKey(key)}:</strong> ${val}</span>`; }
-                html += "</div>";
-                html += "<h2>全局维度分析</h2><div class='card'>";
-                const globalDesc = (globalDim.description || '(无)').replace(/\[(.*?)\]/g, '<strong>[$1]</strong>');
-                html += `<h3>综合描述</h3><p>${globalDesc}</p>`;
-                const highlights = globalDim.highlights || {};
-                if (Object.keys(highlights).length > 0) {
-                    html += "<h3>亮点</h3>";
-                    for (const [key, val] of Object.entries(highlights)) { html += `<p><span class='highlight-title'>${key}:</span> <span class='highlight-text'>${val}</span></p>`; }
-                }
-                html += "</div>";
-                html += "<h2>段落维度分析</h2>";
-                for (const section of sectionDim) {
-                    html += `<div class='card'><h3>${section.id || ''} <small>(${section.timestamp || ''})</small></h3>`;
-                    html += `<p><strong>描述:</strong> ${section.description || '(无)'}</p>`;
-                    const lyrics = section.lyrics || '';
-                    if (lyrics && lyrics !== '(Instrumental)') { html += `<div class='lyrics'>${lyrics.replace(/\n/g, '<br>')}</div>`; }
-                    const keywords = section.keywords || {};
-                    if (Object.keys(keywords).length > 0) {
-                        html += "<details><summary>显示/隐藏 关键词</summary><ul>";
-                        for (const [k, v] of Object.entries(keywords)) { html += `<li><strong>${formatKey(k)}:</strong> ${v}</li>`; }
-                        html += "</ul></details>";
-                    }
-                    const secHighlights = section.highlights || {};
-                    if (Object.keys(secHighlights).length > 0) {
-                        html += "<details open><summary>显示/隐藏 亮点</summary>";
-                        for (const [key, val] of Object.entries(secHighlights)) { html += `<p><span class='highlight-title'>${key}:</span> <span class='highlight-text'>${val}</span></p>`; }
-                        html += "</details>";
-                    }
-                    html += "</div>";
-                }
-                return html;
+            if (!rawString.trim()) {
+                reportOutput.innerHTML = '<p class="placeholder">报告将在此处显示</p>';
+                return;
             }
-            function formatKey(key) { return key.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()); }
+
+            // --- 终极关键修改：守卫检查 ---
+            // 检查 `jsonrepair` 是否已经在全局 `window` 对象上定义
+            if (typeof window.jsonrepair === 'undefined') {
+                reportOutput.innerHTML = '<p class="loading">正在加载修复工具，请稍候...</p>';
+                // 可以在这里设置一个短暂的延时后再次尝试，但通常提示用户即可
+                return;
+            }
+            // --- 守卫检查结束 ---
+
+            try {
+                // 1. 先用 jsonrepair 修复字符串
+                const repairedString = jsonrepair.jsonrepair(rawString);
+                
+                // 2. 解析修复后的、保证合法的JSON字符串
+                let data = JSON.parse(repairedString);
+                
+                // 3. 兼容旧格式：检查是否存在 music_comprehensive_caption 键
+                if (data.music_comprehensive_caption) {
+                    data = data.music_comprehensive_caption;
+                }
+
+                // 生成HTML报告内容
+                const reportHtml = generateReportHtml(data);
+                reportOutput.innerHTML = reportHtml;
+
+            } catch (error) {
+                // 如果连 jsonrepair 都无法修复，则报错
+                reportOutput.innerHTML = `<p class="error">JSON格式严重错误，无法自动修复: ${error.message}</p>`;
+            }
         });
+
+        // 主函数和辅助函数 (保持不变)
+        function generateReportHtml(data) {
+            const globalDim = data.global_dimension || {};
+            const sectionDim = data.section_dimension || [];
+            let html = '';
+            html += "<h2>核心信息</h2><div class='card'>";
+            const factKeywords = globalDim.fact_keywords || {};
+            for (const [key, val] of Object.entries(factKeywords)) { html += `<span class='tag'><strong>${formatKey(key)}:</strong> ${val}</span>`; }
+            html += "</div>";
+            html += "<h2>全局维度分析</h2><div class='card'>";
+            const globalDesc = (globalDim.description || '(无)').replace(/\[(.*?)\]/g, '<strong>[$1]</strong>');
+            html += `<h3>综合描述</h3><p>${globalDesc}</p>`;
+            const highlights = globalDim.highlights || {};
+            if (Object.keys(highlights).length > 0) {
+                html += "<h3>亮点</h3>";
+                for (const [key, val] of Object.entries(highlights)) { html += `<p><span class='highlight-title'>${key}:</span> <span class='highlight-text'>${val}</span></p>`; }
+            }
+            html += "</div>";
+            html += "<h2>段落维度分析</h2>";
+            for (const section of sectionDim) {
+                html += `<div class='card'><h3>${section.id || ''} <small>(${section.timestamp || ''})</small></h3>`;
+                html += `<p><strong>描述:</strong> ${section.description || '(无)'}</p>`;
+                const lyrics = section.lyrics || '';
+                if (lyrics && lyrics !== '(Instrumental)') { html += `<div class='lyrics'>${lyrics.replace(/\n/g, '<br>')}</div>`; }
+                const keywords = section.keywords || {};
+                if (Object.keys(keywords).length > 0) {
+                    html += "<details><summary>显示/隐藏 关键词</summary><ul>";
+                    for (const [k, v] of Object.entries(keywords)) { html += `<li><strong>${formatKey(k)}:</strong> ${v}</li>`; }
+                    html += "</ul></details>";
+                }
+                const secHighlights = section.highlights || {};
+                if (Object.keys(secHighlights).length > 0) {
+                    html += "<details open><summary>显示/隐藏 亮点</summary>";
+                    for (const [key, val] of Object.entries(secHighlights)) { html += `<p><span class='highlight-title'>${key}:</span> <span class='highlight-text'>${val}</span></p>`; }
+                    html += "</details>";
+                }
+                html += "</div>";
+            }
+            return html;
+        }
+        function formatKey(key) { return key.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()); }
     </script>
 
 </body>
