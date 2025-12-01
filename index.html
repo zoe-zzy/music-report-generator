@@ -54,7 +54,7 @@
         /* 报告内部样式 */
         .card { background: #fdfdfd; border: 1px solid #eee; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
         .tag { display: inline-block; background-color: #e7f3ff; color: #007bff; padding: 4px 10px; border-radius: 12px; font-size: 0.9em; margin-right: 8px; margin-bottom: 8px; }
-        .lyrics { background: #f3f4f6; border-left: 3px solid #60a5fa; padding: 15px; margin: 15px 0; white-space: pre-wrap; font-style: italic; }
+        .lyrics { background: #f3f4f6; border-left: 3px solid #60a5fa; padding: 15px; margin: 15px 0; white-space: pre-wrap; font-style: italic; word-wrap: break-word; }
         .highlight-title { font-weight: bold; color: #16a34a; }
         .highlight-text { display: block; margin-left: 20px; }
         details { background: #fafafa; border-radius: 4px; padding: 10px; margin-top: 10px; border: 1px solid #eee; transition: background-color 0.2s; }
@@ -85,19 +85,25 @@
 
         // 监听输入框的实时变化
         jsonInput.addEventListener('input', function() {
-            const jsonString = this.value;
+            const jsonString = this.value.trim();
 
             // 如果输入为空，则显示占位符
-            if (!jsonString.trim()) {
+            if (!jsonString) {
                 reportOutput.innerHTML = '<p class="placeholder">报告将在此处显示</p>';
                 return;
             }
 
             try {
-                // 尝试解析JSON
+                // 第一次解析
                 let data = JSON.parse(jsonString);
-                
-                // 检查是否存在 music_comprehensive_caption 键，如果存在则使用其内部数据
+
+                // 检查解析后的结果是否仍然是一个字符串。
+                // 如果是，说明原始输入是“字符串化的JSON”，需要再解析一次。
+                if (typeof data === 'string') {
+                    data = JSON.parse(data);
+                }
+
+                // 兼容旧格式：检查是否存在 music_comprehensive_caption 键
                 if (data.music_comprehensive_caption) {
                     data = data.music_comprehensive_caption;
                 }
@@ -108,7 +114,7 @@
 
             } catch (error) {
                 // 如果JSON格式错误，则显示错误信息
-                reportOutput.innerHTML = `<p class="error">JSON格式错误: ${error.message}</p>`;
+                reportOutput.innerHTML = `<p class="error">JSON格式或结构错误: ${error.message}</p>`;
             }
         });
 
@@ -148,7 +154,8 @@
                 
                 const lyrics = section.lyrics || '';
                 if (lyrics && lyrics !== '(Instrumental)') {
-                    html += `<div class='lyrics'>${lyrics}</div>`;
+                    // 将歌词中的 \n 替换为 <br> 以便在HTML中正确换行
+                    html += `<div class='lyrics'>${lyrics.replace(/\n/g, '<br>')}</div>`;
                 }
 
                 const keywords = section.keywords || {};
@@ -177,7 +184,6 @@
         function formatKey(key) {
             return key.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
         }
-
     </script>
 
 </body>
