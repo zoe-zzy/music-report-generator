@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON 音乐分析报告生成器</title>
+    <style>
+        /* 页面整体样式 */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            background-color: #f8f9fa; 
+            margin: 0; 
+            padding: 20px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container { 
+            width: 100%;
+            max-width: 1000px; 
+            margin: auto; 
+        }
+        /* 标题和描述 */
+        h1, h2, h3 { color: #2c3e50; }
+        h1 { text-align: center; border-bottom: 2px solid #e9ecef; padding-bottom: 15px; }
+        .description { text-align: center; color: #6c757d; margin-bottom: 30px; }
+        
+        /* 输入区域 */
+        #json-input {
+            width: 100%;
+            height: 250px;
+            padding: 15px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+        
+        /* 报告输出区域 */
+        #report-output {
+            background: #fff; 
+            padding: 30px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            min-height: 100px;
+            border: 1px solid #dee2e6;
+        }
+        .placeholder { color: #adb5bd; text-align: center; font-style: italic; }
+        
+        /* 报告内部样式 */
+        .card { background: #fdfdfd; border: 1px solid #eee; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
+        .tag { display: inline-block; background-color: #e7f3ff; color: #007bff; padding: 4px 10px; border-radius: 12px; font-size: 0.9em; margin-right: 8px; margin-bottom: 8px; }
+        .lyrics { background: #f3f4f6; border-left: 3px solid #60a5fa; padding: 15px; margin: 15px 0; white-space: pre-wrap; font-style: italic; }
+        .highlight-title { font-weight: bold; color: #16a34a; }
+        .highlight-text { display: block; margin-left: 20px; }
+        details { background: #fafafa; border-radius: 4px; padding: 10px; margin-top: 10px; border: 1px solid #eee; transition: background-color 0.2s; }
+        details[open] { background: #f0f7ff; }
+        summary { font-weight: bold; cursor: pointer; color: #3498db; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 5px; }
+        .error { color: #dc3545; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>JSON 音乐分析报告生成器</h1>
+        <p class="description">请在下方的文本框中粘贴完整的JSON内容，报告将自动实时生成。</p>
+
+        <textarea id="json-input" placeholder="在这里粘贴你的JSON..."></textarea>
+
+        <div id="report-output">
+            <p class="placeholder">报告将在此处显示</p>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const jsonInput = document.getElementById('json-input');
+        const reportOutput = document.getElementById('report-output');
+
+        // 监听输入框的实时变化
+        jsonInput.addEventListener('input', function() {
+            const jsonString = this.value;
+
+            // 如果输入为空，则显示占位符
+            if (!jsonString.trim()) {
+                reportOutput.innerHTML = '<p class="placeholder">报告将在此处显示</p>';
+                return;
+            }
+
+            try {
+                // 尝试解析JSON
+                let data = JSON.parse(jsonString);
+                
+                // 检查是否存在 music_comprehensive_caption 键，如果存在则使用其内部数据
+                if (data.music_comprehensive_caption) {
+                    data = data.music_comprehensive_caption;
+                }
+
+                // 生成HTML报告内容
+                const reportHtml = generateReportHtml(data);
+                reportOutput.innerHTML = reportHtml;
+
+            } catch (error) {
+                // 如果JSON格式错误，则显示错误信息
+                reportOutput.innerHTML = `<p class="error">JSON格式错误: ${error.message}</p>`;
+            }
+        });
+
+        // 主函数：将解析后的JSON对象转换为HTML字符串
+        function generateReportHtml(data) {
+            const globalDim = data.global_dimension || {};
+            const sectionDim = data.section_dimension || [];
+            let html = '';
+
+            // --- 核心信息 ---
+            html += "<h2>核心信息</h2><div class='card'>";
+            const factKeywords = globalDim.fact_keywords || {};
+            for (const [key, val] of Object.entries(factKeywords)) {
+                html += `<span class='tag'><strong>${formatKey(key)}:</strong> ${val}</span>`;
+            }
+            html += "</div>";
+
+            // --- 全局维度 ---
+            html += "<h2>全局维度分析</h2><div class='card'>";
+            const globalDesc = (globalDim.description || '(无)').replace(/\[(.*?)\]/g, '<strong>[$1]</strong>');
+            html += `<h3>综合描述</h3><p>${globalDesc}</p>`;
+            
+            const highlights = globalDim.highlights || {};
+            if (Object.keys(highlights).length > 0) {
+                html += "<h3>亮点</h3>";
+                for (const [key, val] of Object.entries(highlights)) {
+                    html += `<p><span class='highlight-title'>${key}:</span> <span class='highlight-text'>${val}</span></p>`;
+                }
+            }
+            html += "</div>";
+
+            // --- 段落维度 ---
+            html += "<h2>段落维度分析</h2>";
+            for (const section of sectionDim) {
+                html += `<div class='card'><h3>${section.id || ''} <small>(${section.timestamp || ''})</small></h3>`;
+                html += `<p><strong>描述:</strong> ${section.description || '(无)'}</p>`;
+                
+                const lyrics = section.lyrics || '';
+                if (lyrics && lyrics !== '(Instrumental)') {
+                    html += `<div class='lyrics'>${lyrics}</div>`;
+                }
+
+                const keywords = section.keywords || {};
+                if (Object.keys(keywords).length > 0) {
+                    html += "<details><summary>显示/隐藏 关键词</summary><ul>";
+                    for (const [k, v] of Object.entries(keywords)) {
+                        html += `<li><strong>${formatKey(k)}:</strong> ${v}</li>`;
+                    }
+                    html += "</ul></details>";
+                }
+                
+                const secHighlights = section.highlights || {};
+                if (Object.keys(secHighlights).length > 0) {
+                    html += "<details open><summary>显示/隐藏 亮点</summary>";
+                    for (const [key, val] of Object.entries(secHighlights)) {
+                        html += `<p><span class='highlight-title'>${key}:</span> <span class='highlight-text'>${val}</span></p>`;
+                    }
+                    html += "</details>";
+                }
+                html += "</div>";
+            }
+            return html;
+        }
+
+        // 辅助函数：格式化key（例如 "chord_progression" -> "Chord Progression"）
+        function formatKey(key) {
+            return key.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+        }
+
+    </script>
+
+</body>
+</html>
