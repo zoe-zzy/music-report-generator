@@ -5,39 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JSON 音乐分析报告生成器</title>
     <style>
-        /* 页面样式 */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f8f9fa; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { width: 100%; max-width: 1000px; margin: auto; }
-        h1, h2, h3 { color: #2c3e50; }
-        h1 { text-align: center; border-bottom: 2px solid #e9ecef; padding-bottom: 15px; }
-        .description { text-align: center; color: #6c757d; margin-bottom: 30px; }
-        #json-input { width: 100%; height: 250px; padding: 15px; border: 1px solid #ced4da; border-radius: 8px; font-family: 'Courier New', Courier, monospace; font-size: 14px; box-sizing: border-box; margin-bottom: 20px; }
-        #report-output { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-height: 100px; border: 1px solid #dee2e6; }
-        .placeholder { color: #adb5bd; text-align: center; font-style: italic; }
-        .card { background: #fdfdfd; border: 1px solid #eee; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
-        .tag { display: inline-block; background-color: #e7f3ff; color: #007bff; padding: 4px 10px; border-radius: 12px; font-size: 0.9em; margin-right: 8px; margin-bottom: 8px; }
-        .lyrics { background: #f3f4f6; border-left: 3px solid #60a5fa; padding: 15px; margin: 15px 0; white-space: pre-wrap; font-style: italic; word-wrap: break-word; }
-        .highlight-title { font-weight: bold; color: #16a34a; }
-        .highlight-text { display: block; margin-left: 20px; }
-        details { background: #fafafa; border-radius: 4px; padding: 10px; margin-top: 10px; border: 1px solid #eee; transition: background-color 0.2s; }
-        details[open] { background: #f0f7ff; }
-        summary { font-weight: bold; cursor: pointer; color: #3498db; }
-        ul { padding-left: 20px; }
-        li { margin-bottom: 5px; }
-        .error { color: #dc3545; font-weight: bold; text-align: center; }
+        .container { width: 100%; max-width: 1000px; margin: auto; text-align: center; }
+        h1 { color: #2c3e50; }
+        textarea {
+            width: 95%;
+            height: 400px;
+            padding: 15px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 25px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
-
     <div class="container">
         <h1>JSON 音乐分析报告生成器</h1>
-        <p class="description">请在下方的文本框中粘贴完整的JSON内容，报告将自动实时生成。</p>
-        <textarea id="json-input" placeholder="在这里粘贴你的JSON..."></textarea>
-        <div id="report-output">
-            <p class="placeholder">报告将在此处显示</p>
-        </div>
+        <p>请在下方粘贴JSON内容，然后点击“生成报告”按钮。</p>
+        
+        <!-- 表单将数据提交到公共转换服务器 -->
+        <form action="https://json-report-generator.replit.app/generate" method="post" target="_blank">
+            <textarea name="json_data" placeholder="在这里粘贴你的JSON..."></textarea>
+            <br>
+            <button type="submit">生成报告</button>
+        </form>
     </div>
-
-    <!-- 内联 json-repair 库的完整代码 -->
-    <script>
-    !function(e,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((e="undefined"!=typeof globalThis?globalThis:e||self).jsonrepair={})}(this,(function(e){"use strict";function t(e){this.text=e,this.index=0,this.value=void 0}var r,i,s,n,o,a,c,l,u,p,h,d,f,g,m,y,b,v,k,x,w,S,C,E,T,A,I,O,R,_,D,N,L,P,M,q,F,j,B,H,U,G,W,z,K,V,J,Y,Z,$,Q,X,ee,te,re,ie,se,ne,oe,ae,ce,le,ue,pe,he,de,fe,ge,me,ye,be,ve,ke,xe,we,Se,Ce,Ee,Te,Ae,Ie,Oe,Re,_e,De,Ne,Le,Pe,Me,qe,Fe,je,Be,He,Ue,Ge,We,ze,Ke,Ve,Je,Ye,Ze,$e,Qe,Xe,et,tt,rt,it,st,nt,ot,at,ct,lt,ut,pt,ht,dt,ft,gt,mt,yt,bt,vt,kt,xt,wt,St,Ct,Et,Tt,At,It,Ot,Rt,_t,Dt,Nt,Lt,Pt,Mt,qt,Ft,jt,Bt,Ht,Ut,Gt,Wt,zt,Kt,Vt,Jt,Yt,Zt,$t,Qt,Xt,er,tr,rr,ir,sr,nr,or,ar,cr,lr,ur,pr,hr,dr,fr,gr,mr,yr,br,vr,kr,xr,wr,Sr,Cr,Er,Tr,Ar,Ir,Or,Rr,_r,Dr,Nr,Lr,Pr,Mr,qr,Fr,jr,Br,Hr,Ur,Gr,Wr,zr,Kr,Vr,Jr,Yr,Zr,$r,Qr,Xr,ei,ti,ri,ii,si,ni,oi,ai,ci,li,ui,pi,hi,di,fi,gi,mi,yi,bi,vi,ki,xi,wi,Si,Ci,Ei,Ti,Ai,Ii,Oi,Ri,_i,Di,Ni,Li,Pi,Mi,qi,Fi,ji,Bi,Hi,Ui,Gi,Wi,zi,Ki,Vi,Ji,Yi,Zi,$i,Qi,Xi,es,ts,rs,is,ss,ns,os,as,cs,ls,us,ps,hs,ds,fs,gs,ms,ys,bs,vs,ks,xs,ws,Ss,Cs,Es,Ts,As,Is,Os,Rs,_s,Ds,Ns,Ls,Ps,Ms,qs,Fs,js,Bs,Hs,Us,Gs,Ws,zs,Ks,Vs,Js,Ys,Zs,$s,Qs,Xs,en,tn,rn,sn,nn,on,an,cn,ln,un,pn,hn,dn,fn,gn,mn,yn,bn,vn,kn,xn,wn,Sn,Cn,En,Tn,An,In,On,Rn,_n,Dn,Nn,Ln,Pn,Mn,qn,Fn,jn,Bn,Hn,Un,Gn,Wn,zn,Kn,Vn,Jn,Yn,Zn,$n,Qn,Xn,eo,to,ro,io,so,no,oo,ao,co,lo,uo,po,ho,do,fo,go,mo,yo,bo,vo,ko,xo,wo,So,Co,Eo,To,Ao,Io,Oo,Ro,_o,Do,No,Lo,Po,Mo,qo,Fo,jo,Bo,Ho,Uo,Go,Wo,zo,Ko,Vo,Jo,Yo,Zo,$o,Qo,Xo,ea,ta,ra,ia,sa,na,oa,aa,ca,la,ua,pa,ha,da,fa,ga,ma,ya,ba,va,ka,xa,wa,Sa,Ca,Ea,Ta,Aa,Ia,Oa,Ra,_a,Da,Na,La,Pa,Ma,qa,Fa,ja,Ba,Ha,Ua,Ga,Wa,za,Ka,Va,Ja,Ya,Za,$a,Qa,Xa,ec,tc,rc,ic,sc,nc,oc,ac,cc,lc,uc,pc,hc,dc,fc,gc,mc,yc,bc,vc,kc,xc,wc,Sc,Cc,Ec,Tc,Ac,Ic,Oc,Rc,_c,Dc,Nc,Lc,Pc,Mc,qc,Fc,jc,Bc,Hc,Uc,Gc,Wc,zc,Kc,Vc,Jc,Yc,Zc,$c,Qc,Xc,el,tl,rl,il,sl,nl,ol,al,cl,ll,ul,pl,hl,dl,fl,gl,ml,yl,bl,vl,kl,xl,wl,Sl,Cl,El,Tl,Al,Il,Ol,Rl,_l,Dl,Nl,Ll,Pl,Ml,ql,Fl,jl,Bl,Hl,Ul,Gl,Wl,zl,Kl,Vl,Jl,Yl,Zl,$l,Ql,Xl,eu,tu,ru,iu,su,nu,ou,au,cu,lu,uu,pu,hu,du,fu,gu,mu,yu,bu,vu,ku,xu,wu,Su,Cu,Eu,Tu,Au,Iu,Ou,Ru,_u,Du,Nu,Lu,Pu,Mu,qu,Fu,ju,Bu,Hu,Uu,Gu,Wu,zu,Ku,Vu,Ju,Yu,Zu,$u,Qu,Xu,ep,tp,rp,ip,sp,np,op,ap,cp,lp,up,pp,hp,dp,fp,gp,mp,yp,bp,vp,kp,xp,wp,Sp,Cp,Ep,Tp,Ap,Ip,Op,Rp,_p,Dp,Np,Lp,Pp,Mp,qp,Fp,jp,Bp,Hp,Up,Gp,Wp,zp,Kp,Vp,Jp,Yp,Zp,$p,Qp,Xp,eh,th,rh,ih,sh,nh,oh,ah,ch,lh,uh,ph,hh,dh,fh,gh,mh,yh,bh,vh,kh,xh,wh,Sh,Ch,Eh,Th,Ah,Ih,Oh,Rh,_h,Dh,Nh,Lh,Ph,Mh,qh,Fh,jh,Bh,Hh,Uh,Gh,Wh,zh,Kh,Vh,Jh,Yh,Zh,$h,Qh,Xh,ed,td,rd,id,sd,nd,od,ad,cd,ld,ud,pd,hd,dd,fd,gd,md,yd,bd,vd,kd,xd,wd,Sd,Cd,Ed,Td,Ad,Id,Od,Rd,_d,Dd,Nd,Ld,Pd,Md,qd,Fd,jd,Bd,Hd,Ud,Gd,Wd,zd,Kd,Vd,Jd,Yd,Zd,$d,Qd,Xd,ef,tf,rf,sf,nf,of,af,cf,lf,uf,pf,hf,df,ff,gf,mf,yf,bf,vf,kf,xf,wf,Sf,Cf,Ef,Tf,Af,If,Of,Rf,_f,Df,Nf,Lf,Pf,Mf,qf,Ff,jf,Bf,Hf,Uf,Gf,Wf,zf,Kf,Vf,Jf,Yf,Zf,$f,Qf,Xf,eg,tg,rg,ig,sg,ng,og,ag,cg,lg,ug,pg,hg,dg,fg,gg,mg,yg,bg,vg,kg,xg,wg,Sg,Cg,Eg,Tg,Ag,Ig,Og,Rg,_g,Dg,Ng,Lg,Pg
+</body>
+</html>
