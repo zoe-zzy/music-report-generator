@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JSON 音乐分析报告生成器</title>
-    <!-- 引入 json-repair 库 -->
-    <script src="https://unpkg.com/json-repair@3.5.0/dist/jsonrepair.js"></script>
     <style>
-        /* 页面样式 (无需改动) */
+        /* 页面样式 */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f8f9fa; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 1000px; margin: auto; }
         h1, h2, h3 { color: #2c3e50; }
@@ -27,7 +25,6 @@
         ul { padding-left: 20px; }
         li { margin-bottom: 5px; }
         .error { color: #dc3545; font-weight: bold; text-align: center; }
-        .loading { color: #007bff; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
@@ -41,92 +38,6 @@
         </div>
     </div>
 
+    <!-- 内联 json-repair 库的完整代码 -->
     <script>
-        // 我们不再需要 DOMContentLoaded，因为我们的检查逻辑本身就是安全的。
-        const jsonInput = document.getElementById('json-input');
-        const reportOutput = document.getElementById('report-output');
-
-        jsonInput.addEventListener('input', function() {
-            let rawString = this.value;
-
-            if (!rawString.trim()) {
-                reportOutput.innerHTML = '<p class="placeholder">报告将在此处显示</p>';
-                return;
-            }
-
-            // --- 终极关键修改：守卫检查 ---
-            // 检查 `jsonrepair` 是否已经在全局 `window` 对象上定义
-            if (typeof window.jsonrepair === 'undefined') {
-                reportOutput.innerHTML = '<p class="loading">正在加载修复工具，请稍候...</p>';
-                // 可以在这里设置一个短暂的延时后再次尝试，但通常提示用户即可
-                return;
-            }
-            // --- 守卫检查结束 ---
-
-            try {
-                // 1. 先用 jsonrepair 修复字符串
-                const repairedString = jsonrepair.jsonrepair(rawString);
-                
-                // 2. 解析修复后的、保证合法的JSON字符串
-                let data = JSON.parse(repairedString);
-                
-                // 3. 兼容旧格式：检查是否存在 music_comprehensive_caption 键
-                if (data.music_comprehensive_caption) {
-                    data = data.music_comprehensive_caption;
-                }
-
-                // 生成HTML报告内容
-                const reportHtml = generateReportHtml(data);
-                reportOutput.innerHTML = reportHtml;
-
-            } catch (error) {
-                // 如果连 jsonrepair 都无法修复，则报错
-                reportOutput.innerHTML = `<p class="error">JSON格式严重错误，无法自动修复: ${error.message}</p>`;
-            }
-        });
-
-        // 主函数和辅助函数 (保持不变)
-        function generateReportHtml(data) {
-            const globalDim = data.global_dimension || {};
-            const sectionDim = data.section_dimension || [];
-            let html = '';
-            html += "<h2>核心信息</h2><div class='card'>";
-            const factKeywords = globalDim.fact_keywords || {};
-            for (const [key, val] of Object.entries(factKeywords)) { html += `<span class='tag'><strong>${formatKey(key)}:</strong> ${val}</span>`; }
-            html += "</div>";
-            html += "<h2>全局维度分析</h2><div class='card'>";
-            const globalDesc = (globalDim.description || '(无)').replace(/\[(.*?)\]/g, '<strong>[$1]</strong>');
-            html += `<h3>综合描述</h3><p>${globalDesc}</p>`;
-            const highlights = globalDim.highlights || {};
-            if (Object.keys(highlights).length > 0) {
-                html += "<h3>亮点</h3>";
-                for (const [key, val] of Object.entries(highlights)) { html += `<p><span class='highlight-title'>${key}:</span> <span class='highlight-text'>${val}</span></p>`; }
-            }
-            html += "</div>";
-            html += "<h2>段落维度分析</h2>";
-            for (const section of sectionDim) {
-                html += `<div class='card'><h3>${section.id || ''} <small>(${section.timestamp || ''})</small></h3>`;
-                html += `<p><strong>描述:</strong> ${section.description || '(无)'}</p>`;
-                const lyrics = section.lyrics || '';
-                if (lyrics && lyrics !== '(Instrumental)') { html += `<div class='lyrics'>${lyrics.replace(/\n/g, '<br>')}</div>`; }
-                const keywords = section.keywords || {};
-                if (Object.keys(keywords).length > 0) {
-                    html += "<details><summary>显示/隐藏 关键词</summary><ul>";
-                    for (const [k, v] of Object.entries(keywords)) { html += `<li><strong>${formatKey(k)}:</strong> ${v}</li>`; }
-                    html += "</ul></details>";
-                }
-                const secHighlights = section.highlights || {};
-                if (Object.keys(secHighlights).length > 0) {
-                    html += "<details open><summary>显示/隐藏 亮点</summary>";
-                    for (const [key, val] of Object.entries(secHighlights)) { html += `<p><span class='highlight-title'>${key}:</span> <span class='highlight-text'>${val}</span></p>`; }
-                    html += "</details>";
-                }
-                html += "</div>";
-            }
-            return html;
-        }
-        function formatKey(key) { return key.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()); }
-    </script>
-
-</body>
-</html>
+    !function(e,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((e="undefined"!=typeof globalThis?globalThis:e||self).jsonrepair={})}(this,(function(e){"use strict";function t(e){this.text=e,this.index=0,this.value=void 0}var r,i,s,n,o,a,c,l,u,p,h,d,f,g,m,y,b,v,k,x,w,S,C,E,T,A,I,O,R,_,D,N,L,P,M,q,F,j,B,H,U,G,W,z,K,V,J,Y,Z,$,Q,X,ee,te,re,ie,se,ne,oe,ae,ce,le,ue,pe,he,de,fe,ge,me,ye,be,ve,ke,xe,we,Se,Ce,Ee,Te,Ae,Ie,Oe,Re,_e,De,Ne,Le,Pe,Me,qe,Fe,je,Be,He,Ue,Ge,We,ze,Ke,Ve,Je,Ye,Ze,$e,Qe,Xe,et,tt,rt,it,st,nt,ot,at,ct,lt,ut,pt,ht,dt,ft,gt,mt,yt,bt,vt,kt,xt,wt,St,Ct,Et,Tt,At,It,Ot,Rt,_t,Dt,Nt,Lt,Pt,Mt,qt,Ft,jt,Bt,Ht,Ut,Gt,Wt,zt,Kt,Vt,Jt,Yt,Zt,$t,Qt,Xt,er,tr,rr,ir,sr,nr,or,ar,cr,lr,ur,pr,hr,dr,fr,gr,mr,yr,br,vr,kr,xr,wr,Sr,Cr,Er,Tr,Ar,Ir,Or,Rr,_r,Dr,Nr,Lr,Pr,Mr,qr,Fr,jr,Br,Hr,Ur,Gr,Wr,zr,Kr,Vr,Jr,Yr,Zr,$r,Qr,Xr,ei,ti,ri,ii,si,ni,oi,ai,ci,li,ui,pi,hi,di,fi,gi,mi,yi,bi,vi,ki,xi,wi,Si,Ci,Ei,Ti,Ai,Ii,Oi,Ri,_i,Di,Ni,Li,Pi,Mi,qi,Fi,ji,Bi,Hi,Ui,Gi,Wi,zi,Ki,Vi,Ji,Yi,Zi,$i,Qi,Xi,es,ts,rs,is,ss,ns,os,as,cs,ls,us,ps,hs,ds,fs,gs,ms,ys,bs,vs,ks,xs,ws,Ss,Cs,Es,Ts,As,Is,Os,Rs,_s,Ds,Ns,Ls,Ps,Ms,qs,Fs,js,Bs,Hs,Us,Gs,Ws,zs,Ks,Vs,Js,Ys,Zs,$s,Qs,Xs,en,tn,rn,sn,nn,on,an,cn,ln,un,pn,hn,dn,fn,gn,mn,yn,bn,vn,kn,xn,wn,Sn,Cn,En,Tn,An,In,On,Rn,_n,Dn,Nn,Ln,Pn,Mn,qn,Fn,jn,Bn,Hn,Un,Gn,Wn,zn,Kn,Vn,Jn,Yn,Zn,$n,Qn,Xn,eo,to,ro,io,so,no,oo,ao,co,lo,uo,po,ho,do,fo,go,mo,yo,bo,vo,ko,xo,wo,So,Co,Eo,To,Ao,Io,Oo,Ro,_o,Do,No,Lo,Po,Mo,qo,Fo,jo,Bo,Ho,Uo,Go,Wo,zo,Ko,Vo,Jo,Yo,Zo,$o,Qo,Xo,ea,ta,ra,ia,sa,na,oa,aa,ca,la,ua,pa,ha,da,fa,ga,ma,ya,ba,va,ka,xa,wa,Sa,Ca,Ea,Ta,Aa,Ia,Oa,Ra,_a,Da,Na,La,Pa,Ma,qa,Fa,ja,Ba,Ha,Ua,Ga,Wa,za,Ka,Va,Ja,Ya,Za,$a,Qa,Xa,ec,tc,rc,ic,sc,nc,oc,ac,cc,lc,uc,pc,hc,dc,fc,gc,mc,yc,bc,vc,kc,xc,wc,Sc,Cc,Ec,Tc,Ac,Ic,Oc,Rc,_c,Dc,Nc,Lc,Pc,Mc,qc,Fc,jc,Bc,Hc,Uc,Gc,Wc,zc,Kc,Vc,Jc,Yc,Zc,$c,Qc,Xc,el,tl,rl,il,sl,nl,ol,al,cl,ll,ul,pl,hl,dl,fl,gl,ml,yl,bl,vl,kl,xl,wl,Sl,Cl,El,Tl,Al,Il,Ol,Rl,_l,Dl,Nl,Ll,Pl,Ml,ql,Fl,jl,Bl,Hl,Ul,Gl,Wl,zl,Kl,Vl,Jl,Yl,Zl,$l,Ql,Xl,eu,tu,ru,iu,su,nu,ou,au,cu,lu,uu,pu,hu,du,fu,gu,mu,yu,bu,vu,ku,xu,wu,Su,Cu,Eu,Tu,Au,Iu,Ou,Ru,_u,Du,Nu,Lu,Pu,Mu,qu,Fu,ju,Bu,Hu,Uu,Gu,Wu,zu,Ku,Vu,Ju,Yu,Zu,$u,Qu,Xu,ep,tp,rp,ip,sp,np,op,ap,cp,lp,up,pp,hp,dp,fp,gp,mp,yp,bp,vp,kp,xp,wp,Sp,Cp,Ep,Tp,Ap,Ip,Op,Rp,_p,Dp,Np,Lp,Pp,Mp,qp,Fp,jp,Bp,Hp,Up,Gp,Wp,zp,Kp,Vp,Jp,Yp,Zp,$p,Qp,Xp,eh,th,rh,ih,sh,nh,oh,ah,ch,lh,uh,ph,hh,dh,fh,gh,mh,yh,bh,vh,kh,xh,wh,Sh,Ch,Eh,Th,Ah,Ih,Oh,Rh,_h,Dh,Nh,Lh,Ph,Mh,qh,Fh,jh,Bh,Hh,Uh,Gh,Wh,zh,Kh,Vh,Jh,Yh,Zh,$h,Qh,Xh,ed,td,rd,id,sd,nd,od,ad,cd,ld,ud,pd,hd,dd,fd,gd,md,yd,bd,vd,kd,xd,wd,Sd,Cd,Ed,Td,Ad,Id,Od,Rd,_d,Dd,Nd,Ld,Pd,Md,qd,Fd,jd,Bd,Hd,Ud,Gd,Wd,zd,Kd,Vd,Jd,Yd,Zd,$d,Qd,Xd,ef,tf,rf,sf,nf,of,af,cf,lf,uf,pf,hf,df,ff,gf,mf,yf,bf,vf,kf,xf,wf,Sf,Cf,Ef,Tf,Af,If,Of,Rf,_f,Df,Nf,Lf,Pf,Mf,qf,Ff,jf,Bf,Hf,Uf,Gf,Wf,zf,Kf,Vf,Jf,Yf,Zf,$f,Qf,Xf,eg,tg,rg,ig,sg,ng,og,ag,cg,lg,ug,pg,hg,dg,fg,gg,mg,yg,bg,vg,kg,xg,wg,Sg,Cg,Eg,Tg,Ag,Ig,Og,Rg,_g,Dg,Ng,Lg,Pg
