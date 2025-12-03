@@ -38,13 +38,13 @@
             padding-bottom: 0;
             margin-bottom: 1em;
         }
-        
+
         h1 {
             text-align: center;
             font-size: 2.2em;
             margin-top: 0;
         }
-        
+
         h2 {
             font-size: 1.8em;
             margin-top: 2.5em;
@@ -64,7 +64,7 @@
             margin-bottom: 0.5em;
             opacity: 0.6;
         }
-        
+
         .tool-title {
              text-align: center;
              margin-bottom: 40px;
@@ -74,7 +74,7 @@
         .input-section {
             margin-bottom: 40px;
         }
-        
+
         #json-input {
             width: 100%;
             height: 200px;
@@ -87,7 +87,7 @@
             font-size: 0.9em;
             box-sizing: border-box;
         }
-        
+
         #generate-btn {
             display: block;
             width: 100%;
@@ -102,24 +102,34 @@
             cursor: pointer;
             transition: background-color 0.3s, color 0.3s;
         }
-        
+
         #generate-btn:hover {
             background-color: #333;
         }
-        
+
         #message-box {
             margin-top: 10px;
-            text-align: center;
-            padding: 10px;
+            text-align: left; /* 改为左对齐以适应列表 */
+            padding: 15px;
             border-radius: 5px;
             display: none;
             border: 1px solid;
+            font-size: 0.9em;
         }
         #message-box.error {
             color: var(--error-color);
+            background-color: rgba(220, 53, 69, 0.1);
         }
         #message-box.warning {
             color: var(--warning-color);
+            background-color: rgba(255, 193, 7, 0.1);
+        }
+        #message-box ul {
+            margin: 10px 0 0 20px;
+            padding: 0;
+        }
+        #message-box li {
+            margin-bottom: 5px;
         }
 
         .report-divider {
@@ -146,7 +156,7 @@
             white-space: nowrap;
             border: 1px solid var(--border-color);
         }
-        
+
         .tag .key {
             opacity: 0.6;
             margin-right: 6px;
@@ -162,8 +172,7 @@
             opacity: 0.7;
             border-radius: 0;
         }
-        
-        /* 新增样式，用于分行后的段落 */
+
         .description-paragraph {
             margin-bottom: 0.8em;
         }
@@ -180,7 +189,7 @@
             border-radius: 5px;
             background-color: transparent;
         }
-        
+
         .highlights-container li {
             border: 1px solid var(--highlight-positive);
             color: var(--highlight-positive);
@@ -190,7 +199,7 @@
             border: 1px solid var(--highlight-negative);
             color: var(--highlight-negative);
         }
-        
+
         .highlights-container strong, .lowlights-container strong {
             color: var(--text-color);
             margin-bottom: 5px;
@@ -228,25 +237,111 @@
         const generateBtn = document.getElementById('generate-btn');
         const messageBox = document.getElementById('message-box');
         const reportOutput = document.getElementById('report-output');
-        
+
+        /**
+         * --- NEW: Comprehensive Data Validation Function ---
+         * Traverses the data and collects all structural and type errors.
+         * @param {object} data - The parsed JSON data.
+         * @returns {string[]} - An array of error messages. Empty if data is valid.
+         */
+        function validateData(data) {
+            const errors = [];
+            const check = (value, type, path) => {
+                if (type === 'array' && !Array.isArray(value)) {
+                    errors.push(`路径 "${path}" 的类型应为数组 (Array)，但实际为 ${typeof value}。`);
+                    return false;
+                }
+                if (type === 'object' && (typeof value !== 'object' || value === null || Array.isArray(value))) {
+                    errors.push(`路径 "${path}" 的类型应为对象 (Object)，但实际为 ${value === null ? 'null' : typeof value}。`);
+                    return false;
+                }
+                if (type === 'string' && typeof value !== 'string') {
+                    errors.push(`路径 "${path}" 的类型应为字符串 (String)，但实际为 ${typeof value}。`);
+                    return false;
+                }
+                if (type === 'required' && (value === undefined || value === null)) {
+                    errors.push(`缺少必需的路径 "${path}"。`);
+                    return false;
+                }
+                return true;
+            };
+
+            if (!check(data, 'object', '根节点')) return errors;
+
+            // Global dimension checks
+            if (check(data.global_dimension, 'required', 'global_dimension')) {
+                check(data.global_dimension.fact_keywords, 'required', 'global_dimension.fact_keywords');
+                check(data.global_dimension.description, 'required', 'global_dimension.description');
+                check(data.global_dimension.highlights, 'required', 'global_dimension.highlights');
+            }
+
+            // Section dimension checks
+            if (check(data.section_dimension, 'required', 'section_dimension') && check(data.section_dimension, 'array', 'section_dimension')) {
+                data.section_dimension.forEach((section, index) => {
+                    const sectionPath = `section_dimension[${index}]`;
+                    if (!check(section, 'object', sectionPath)) return;
+
+                    const sectionId = section.id || `(未提供 id 的分段 #${index + 1})`;
+
+                    check(section.id, 'required', `${sectionPath}.id`);
+                    check(section.timestamp, 'required', `${sectionPath}.timestamp`);
+                    check(section.keywords, 'object', `${sectionPath}.keywords (来自 ${sectionId})`);
+                    check(section.description, 'string', `${sectionPath}.description (来自 ${sectionId})`);
+                    check(section.highlights, 'object', `${sectionPath}.highlights (来自 ${sectionId})`);
+                    
+                    // The specific 'lyrics' check
+                    check(section.lyrics, 'string', `${sectionPath}.lyrics (来自 ${sectionId})`);
+                });
+            }
+
+            return errors;
+        }
+
         generateBtn.addEventListener('click', () => {
             const originalJsonString = jsonInput.value;
             messageBox.style.display = 'none';
+            reportOutput.innerHTML = '';
+            
+            if (!originalJsonString.trim()) {
+                messageBox.textContent = '请输入 JSON 数据。';
+                messageBox.className = 'warning';
+                messageBox.style.display = 'block';
+                return;
+            }
+
             const cleanedJsonString = originalJsonString.replace(/[\u00A0\u200B\u202F\uFEFF]/g, " ");
             let wasCleaned = originalJsonString !== cleanedJsonString;
+            let data;
+
             try {
-                const data = JSON.parse(cleanedJsonString);
+                data = JSON.parse(cleanedJsonString);
+            } catch (e) {
+                messageBox.innerHTML = `<strong>JSON 解析失败：</strong><br>${e.message}`;
+                messageBox.className = 'error';
+                messageBox.style.display = 'block';
+                console.error("JSON Parsing Error:", e);
+                return;
+            }
+
+            // --- NEW LOGIC: Validate first, then render ---
+            const validationErrors = validateData(data);
+            if (validationErrors.length > 0) {
+                let errorHtml = '<strong>数据结构校验失败，发现以下问题：</strong><ul>';
+                validationErrors.forEach(error => {
+                    errorHtml += `<li>${error}</li>`;
+                });
+                errorHtml += '</ul>';
+                messageBox.innerHTML = errorHtml;
+                messageBox.className = 'error';
+                messageBox.style.display = 'block';
+            } else {
+                // Only render if there are no errors
                 renderReport(data);
                 if (wasCleaned) {
                     messageBox.textContent = '提示：已自动清理输入内容中的不可见特殊字符。';
                     messageBox.className = 'warning';
                     messageBox.style.display = 'block';
                 }
-            } catch (e) {
-                messageBox.textContent = '错误：输入的不是有效的 JSON 格式。即使在自动清理后也无法解析，请检查数据结构（如：逗号、括号是否匹配）。';
-                messageBox.className = 'error';
-                messageBox.style.display = 'block';
-                console.error("JSON Parsing Error:", e);
             }
         });
 
@@ -255,20 +350,14 @@
             reportOutput.innerHTML = '';
         });
 
-        /**
-         * 新增：格式化带 [Topic]: 标记的描述文本
-         * @param {string} text - 原始描述文本
-         * @returns {string} - 格式化后的 HTML 字符串
-         */
         function formatDescription(text) {
             if (!text || !text.includes(':')) {
                 return `<p>${text}</p>`;
             }
-            // 使用正则表达式分割字符串，保留分隔符
             const parts = text.split(/(\[[^\]]+\]:)/).filter(Boolean);
             let html = '';
             for (let i = 0; i < parts.length; i += 2) {
-                const title = parts[i].replace(/[\[\]:]/g, ''); // 清理标题
+                const title = parts[i].replace(/[\[\]:]/g, '');
                 const content = parts[i+1] || '';
                 html += `<div class="description-paragraph"><strong>• ${title}:</strong>${content.trim()}</div>`;
             }
@@ -277,47 +366,38 @@
 
         function renderReport(jsonData) {
             const { global_dimension, section_dimension } = jsonData;
-            
             let html = `
                 <div>
                     <h2>全局分析 (global_dimension)</h2>
                     <h4>fact_keywords</h4>
                     <div class="tag-container">${Object.entries(global_dimension.fact_keywords).map(([key, value]) => `<div class="tag"><span class="key">${key.replace(/_/g, ' ')}:</span>${value}</div>`).join('')}</div>
-                    
                     <h4>description</h4>
                     ${formatDescription(global_dimension.description)}
-                    
                     ${renderHighlights(global_dimension.highlights, global_dimension.lowlights)}
                 </div>
             `;
 
             html += '<hr class="report-divider">';
-
             html += `<div><h2>分段细节 (section_dimension)</h2>`;
-            if (section_dimension && Array.isArray(section_dimension)) {
-                section_dimension.forEach((section, index) => {
-                    if (index > 0) {
-                        html += '<hr class="report-divider">';
-                    }
-                    html += `
-                        <div>
-                            <h3>${section.id} <span class="timestamp">(${section.timestamp})</span></h3>
-                            
-                            <h4>keywords</h4>
-                            <div class="tag-container">${Object.entries(section.keywords).map(([key, value]) => `<div class="tag"><span class="key">${key.replace(/_/g, ' ')}:</span>${value}</div>`).join('')}</div>
-                            
-                            <h4>description</h4>
-                            <p>${section.description}</p>
-                            
-                            ${section.lyrics && section.lyrics.trim() !== '(Instrumental)' ? `<h4>lyrics</h4><div class="lyrics">${section.lyrics.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>` : ''}
-                            
-                            ${renderHighlights(section.highlights, section.lowlights)}
-                        </div>
-                    `;
-                });
-            }
-            html += '</div>';
 
+            section_dimension.forEach((section, index) => {
+                if (index > 0) {
+                    html += '<hr class="report-divider">';
+                }
+                html += `
+                    <div>
+                        <h3>${section.id} <span class="timestamp">(${section.timestamp})</span></h3>
+                        <h4>keywords</h4>
+                        <div class="tag-container">${Object.entries(section.keywords).map(([key, value]) => `<div class="tag"><span class="key">${key.replace(/_/g, ' ')}:</span>${value}</div>`).join('')}</div>
+                        <h4>description</h4>
+                        <p>${section.description}</p>
+                        ${section.lyrics.trim() && section.lyrics.trim() !== '(Instrumental)' ? `<h4>lyrics</h4><div class="lyrics">${section.lyrics.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>` : ''}
+                        ${renderHighlights(section.highlights, section.lowlights)}
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
             reportOutput.innerHTML = html;
         }
 
